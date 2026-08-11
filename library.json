@@ -1,0 +1,9 @@
+{
+  "name": "sensor-hub-dht-provider",
+  "build": {
+    "libArchive": false
+  },
+  "dependencies": {
+    "adafruit/DHT sensor library": "^1.4.7"
+  }
+}
