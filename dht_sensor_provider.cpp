@@ -36,6 +36,7 @@ class DHTSensorUsermod : public Usermod {
     uint16_t checkIntervalS = 10; // how often to read the sensor (DHT11/22 can't be polled faster than ~1-2s)
     String namePrefix = "dht";    // sensor names become "<prefix>_temperature" / "<prefix>_humidity"
     uint8_t precision = 1;        // decimal places published for both readings
+    uint8_t priority = 100;       // getValue()/getValueBinary() selection priority - lower wins among sensors of the same SensorType (see sensor_bus.h)
 
     static const char _name[];
     static const char _enabled[];
@@ -44,11 +45,12 @@ class DHTSensorUsermod : public Usermod {
     static const char _checkInterval[];
     static const char _namePrefix[];
     static const char _precision[];
+    static const char _priority[];
 
     void registerSensors() {
       if (!hub || tempHandle != SENSOR_HANDLE_INVALID) return; // already registered
-      tempHandle     = hub->registerSensor((namePrefix + "_temperature").c_str(), SensorType::Temperature, nullptr, nullptr, precision);
-      humidityHandle = hub->registerSensor((namePrefix + "_humidity").c_str(),    SensorType::Humidity,    nullptr, nullptr, precision);
+      tempHandle     = hub->registerSensor((namePrefix + "_temperature").c_str(), SensorType::Temperature, nullptr, nullptr, precision, priority);
+      humidityHandle = hub->registerSensor((namePrefix + "_humidity").c_str(),    SensorType::Humidity,    nullptr, nullptr, precision, priority);
     }
 
     void setSensorsAvailable(bool available) {
@@ -105,6 +107,7 @@ class DHTSensorUsermod : public Usermod {
       top[FPSTR(_checkInterval)] = checkIntervalS;
       top[FPSTR(_namePrefix)] = namePrefix;
       top[FPSTR(_precision)] = precision;
+      top[FPSTR(_priority)] = priority;
     }
 
     bool readFromConfig(JsonObject& root) override {
@@ -118,6 +121,7 @@ class DHTSensorUsermod : public Usermod {
       configComplete &= getJsonValue(top[FPSTR(_checkInterval)], checkIntervalS);
       configComplete &= getJsonValue(top[FPSTR(_namePrefix)], namePrefix);
       configComplete &= getJsonValue(top[FPSTR(_precision)], precision);
+      configComplete &= getJsonValue(top[FPSTR(_priority)], priority);
 
       if (initDone && pin != oldPin) {
         // pin changed at runtime via the Settings UI - release the old one and re-init on the new one
@@ -136,6 +140,7 @@ class DHTSensorUsermod : public Usermod {
       settingsScript.print(F("addInfo('DHTSensor:checkInterval',1,'seconds between sensor reads (DHT11/22 can\\'t be read faster than ~1-2s)');"));
       settingsScript.print(F("addInfo('DHTSensor:namePrefix',1,'sensor names become &lt;prefix&gt;_temperature/_humidity - must be unique across all sensor providers');"));
       settingsScript.print(F("addInfo('DHTSensor:precision',1,'decimal places published for both readings');"));
+      settingsScript.print(F("addInfo('DHTSensor:priority',1,'getValue() selection priority - lower wins if another provider also registers a Temperature/Humidity sensor');"));
     }
 };
 
@@ -146,6 +151,7 @@ const char DHTSensorUsermod::_dhtType[]       PROGMEM = "dhtType";
 const char DHTSensorUsermod::_checkInterval[] PROGMEM = "checkInterval";
 const char DHTSensorUsermod::_namePrefix[]    PROGMEM = "namePrefix";
 const char DHTSensorUsermod::_precision[]     PROGMEM = "precision";
+const char DHTSensorUsermod::_priority[]      PROGMEM = "priority";
 
 static DHTSensorUsermod dht_sensor;
 REGISTER_USERMOD(dht_sensor);
